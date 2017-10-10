@@ -68,7 +68,9 @@ do
 done
 
 # sort -nu does not work as expected
-sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP"|sort -n|sort -mu >| "$IP_BLACKLIST"
+sed -r -e '/^(0\.0\.0\.0|10\.|127\.|172\.1[6-9]\.|172\.2[0-9]\.|172\.3[0-1]\.|192\.168\.|22[4-9]\.|23[0-9]\.)/d' "$IP_BLACKLIST_TMP" | \
+	{ [[ -s "$IP_WHITELIST" ]] && grep -vf "$IP_WHITELIST" || cat; } | \
+	sort -n|sort -mu >| "$IP_BLACKLIST"
 rm -f "$IP_BLACKLIST_TMP"
 
 # family = inet for IPv4 only
