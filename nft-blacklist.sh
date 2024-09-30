@@ -59,6 +59,7 @@ fi
 CIDR_MERGER="${CIDR_MERGER:-DEFAULT_CIDR_MERGER}"
 HOOK="${HOOK:-$DEFAULT_HOOK}"
 CHAIN="${CHAIN:-$DEFAULT_CHAIN}"
+CHAIN_PREAMBLE=$(eval echo "${CHAIN_PREAMBLE}")
 
 if exists $CIDR_MERGER && (( $OPTIMIZE_CIDR )); then
   let OPTIMIZE_CIDR=1
@@ -134,9 +135,10 @@ flush set inet $TABLE $SET_NAME_V6
 add chain inet $TABLE $CHAIN { type filter hook $HOOK priority filter - 1; policy accept; }
 flush chain inet $TABLE $CHAIN
 add rule inet $TABLE $CHAIN iif "lo" accept
-add rule inet $TABLE $CHAIN meta pkttype { broadcast, multicast } accept\
-$([[ ! -z "$IP_WHITELIST" ]] && echo -e "\\nadd rule inet $TABLE $CHAIN ip saddr { $IP_WHITELIST } accept")\
+add rule inet $TABLE $CHAIN meta pkttype { broadcast, multicast } accept
+$([[ ! -z "$IP_WHITELIST" ]] && echo -e "\\nadd rule inet $TABLE $CHAIN ip saddr { $IP_WHITELIST } accept")
 $([[ ! -z "$IP6_WHITELIST" ]] && echo -e "\\nadd rule inet $TABLE $CHAIN ip6 saddr { $IP6_WHITELIST } accept")
+${CHAIN_PREAMBLE}
 add rule inet $TABLE $CHAIN ip saddr @$SET_NAME_V4 counter name $SET_NAME_V4 drop
 add rule inet $TABLE $CHAIN ip6 saddr @$SET_NAME_V6 counter name $SET_NAME_V6 drop
 EOF
