@@ -56,24 +56,21 @@ validate() {
 }
 
 download() {
-    (( $VERBOSE )) && echo -n "Downloading ${#BLACKLISTS[@]} sources: "
+    BLACKLIST_TMP_DIR="$1" && shift
+    (( $VERBOSE )) && echo -n "Downloading ${#BLACKLISTS[@]} sources into $BLACKLIST_TMP_DIR : "
 
-    BLACKLIST_TMP_FILE=$(mktemp -t nft-blacklist-combined-XXX)
     for url in "${BLACKLISTS[@]}"; do
-	BL_NAME=$(sed -r '/file:/{s!.*/!!;s/[^a-z0-9.-]//g};s!.*//(www\.)?([^/]+).*/([a-z0-9_-]+).*!\2-\3!i'<<<"$url")
-	TMP_SOURCE_FILE=$(mktemp -t "nft-blacklist-source-$BL_NAME-XXX")
-	HTTP_RC=$(curl -L -A "nft-blacklist/1.0 (https://github.com/leshniak/nft-blacklist)" --connect-timeout 10 --max-time 10 -o "$TMP_SOURCE_FILE" -s -w "%{http_code}" "$url")
+	nc=$(curl --version|head -1|awk '{if ($2 > 7.83) print("--no-clobber")}')
+	HTTP_RC=$(curl -L -A "nft-blacklist/1.0 (https://github.com/leshniak/nft-blacklist)" --connect-timeout 10 --max-time 10 -O $nc --output-dir "$BLACKLIST_TMP_DIR" -s -w "%{http_code}" "$url")
 	# On file:// protocol, curl returns "000" per-file (file:///tmp/[1-3].txt would return "000000000" whether the 3 files exist or not)
 	# A sequence of 3 resources would return "200200200"
 	if (( HTTP_RC == 200 || HTTP_RC == 302 )) || [[ $HTTP_RC =~ ^(000|200){1,}$ ]]; then
-	    cat "$TMP_SOURCE_FILE" >> "$BLACKLIST_TMP_FILE"
 	    (( $VERBOSE )) && echo -n "."
 	elif (( HTTP_RC == 503 )); then
 	    echo -e "\\nUnavailable (${HTTP_RC}): $url"
 	else
 	    echo >&2 -e "\\nWarning: curl returned HTTP response code $HTTP_RC for URL $url"
 	fi
-	(( $KEEP_TMP_FILES )) || rm -f "$TMP_SOURCE_FILE"
     done
 
     (( $VERBOSE )) && echo -e "\\n"
@@ -184,13 +181,18 @@ if [[ ! -d $(dirname "$IP_BLACKLIST_FILE") || ! -d $(dirname "$IP6_BLACKLIST_FIL
 fi
 
 ## Processing starts
-download
-extract_v4 "$TMP_SOURCE_FILE" >| "$IP_BLACKLIST_FILE"
-extract_v6 "$TMP_SOURCE_FILE" >| "$IP6_BLACKLIST_FILE"
-(( $KEEP_TMP_FILES )) || rm -f "$TMP_SOURCE_FILE"
+# Download
+TMP_SOURCES_DIR=$(mktemp -d -t nft-blacklist-sources-XXX)
+download "$TMP_SOURCES_DIR"
+extract_v4 "$TMP_SOURCES_DIR"/* >| "$IP_BLACKLIST_FILE"
+extract_v6 "$TMP_SOURCES_DIR"/* >| "$IP6_BLACKLIST_FILE"
+(( $KEEP_TMP_FILES )) || rm -rf "$TMP_SOURCES_DIR"
+
+# Optimization
 (( $OPTIMIZE_CIDR )) && optimize "$IP_BLACKLIST_FILE" "$IP6_BLACKLIST_FILE"
 generate_ruleset >| "$RULESET_FILE"
 
+# Loading
 if (( ! $DRY_RUN )); then
   (( $VERBOSE )) && echo "Applying ruleset..."
   $NFT -f "$RULESET_FILE" || { echo >&2 "Failed to apply the ruleset"; exit 1; }
