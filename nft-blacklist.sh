@@ -62,7 +62,7 @@ download() {
     for url in "${BLACKLISTS[@]}"; do
 	BL_NAME=$(sed -r '/file:/{s!.*/!!;s/[^a-z0-9.-]//g};s!.*//(www\.)?([^/]+).*/([a-z0-9_-]+).*!\2-\3!i'<<<"$url")
 	TMP_SOURCE_FILE=$(mktemp -t "nft-blacklist-source-$BL_NAME-XXX")
-	(( HTTP_RC=$(curl -L -A "nft-blacklist/1.0 (https://github.com/leshniak/nft-blacklist)" --connect-timeout 10 --max-time 10 -o "$TMP_SOURCE_FILE" -s -w "%{http_code}" "$url") ))
+	HTTP_RC=$(curl -L -A "nft-blacklist/1.0 (https://github.com/leshniak/nft-blacklist)" --connect-timeout 10 --max-time 10 -o "$TMP_SOURCE_FILE" -s -w "%{http_code}" "$url")
 	# On file:// protocol, curl returns "000" per-file (file:///tmp/[1-3].txt would return "000000000" whether the 3 files exist or not)
 	# A sequence of 3 resources would return "200200200"
 	if (( HTTP_RC == 200 || HTTP_RC == 302 )) || [[ $HTTP_RC =~ ^(000|200){1,}$ ]]; then
