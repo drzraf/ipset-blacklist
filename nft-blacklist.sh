@@ -16,7 +16,7 @@ DEFAULT_CHAIN=input
 SET_NAME_PREFIX=blacklist
 SET_NAME_V4="${SET_NAME_PREFIX}_v4"
 SET_NAME_V6="${SET_NAME_PREFIX}_v6"
-IPV4_REGEX="(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?:/[0-9]{1,2})?"
+IPV4_REGEX="(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?:/[0-9]{2})?"
 IPV6_REGEX="(?:(?:[0-9a-f]{1,4}:){7,7}[0-9a-f]{1,4}|\
 (?:[0-9a-f]{1,4}:){1,7}:|\
 (?:[0-9a-f]{1,4}:){1,6}:[0-9a-f]{1,4}|\
