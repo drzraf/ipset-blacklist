@@ -160,7 +160,7 @@ EOF
 [[ ${DRY_RUN:-no} =~ ^1|on|true|yes$ ]] && let DRY_RUN=1 || let DRY_RUN=0
 [[ ${DO_OPTIMIZE_CIDR:-yes} =~ ^1|on|true|yes$ ]] && let OPTIMIZE_CIDR=1 || let OPTIMIZE_CIDR=0
 [[ ${KEEP_TMP_FILES:-no} =~ ^1|on|true|yes$ ]] && let KEEP_TMP_FILES=1 || let KEEP_TMP_FILES=0
-CIDR_MERGER="${CIDR_MERGER:-DEFAULT_CIDR_MERGER}"
+CIDR_MERGER="${CIDR_MERGER:-$DEFAULT_CIDR_MERGER}"
 HOOK="${HOOK:-$DEFAULT_HOOK}"
 CHAIN="${CHAIN:-$DEFAULT_CHAIN}"
 CHAIN_PREAMBLE=$(eval echo "${CHAIN_PREAMBLE}")
@@ -196,6 +196,12 @@ generate_ruleset >| "$RULESET_FILE"
 if (( ! $DRY_RUN )); then
   (( $VERBOSE )) && echo "Applying ruleset..."
   $NFT -f "$RULESET_FILE" || { echo >&2 "Failed to apply the ruleset"; exit 1; }
+fi
+
+if (( $VERBOSE )); then
+  echo
+  echo "IPv4 blacklisted: $(wc -l "$IP_BLACKLIST_FILE" | cut -d' ' -f1)"
+  echo "IPv6 blacklisted: $(wc -l "$IP6_BLACKLIST_FILE" | cut -d' ' -f1)"
 fi
 
 (( $VERBOSE )) && echo "Done!"
